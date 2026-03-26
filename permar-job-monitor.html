@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Per Mar — Security Job Monitor</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Georgia,"Times New Roman",serif;background:#F7F8FA;color:#1B2A4A;min-height:100vh}
+
+/* TOPBAR */
+.topbar{background:#1B2A4A;padding:13px 32px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.logo{display:flex;align-items:center;gap:14px}
+.logo-name{font-size:17px;font-weight:700;color:#fff;letter-spacing:1.5px;line-height:1.1}
+.logo-sub{font-size:7.5px;letter-spacing:2.5px;color:#8A9BB5}
+.topbar-label{font-size:8px;letter-spacing:.28em;color:#5A6A88}
+
+/* PAGE */
+.page{max-width:980px;margin:0 auto;padding:32px 20px 60px}
+.eyebrow{font-size:8.5px;letter-spacing:.3em;color:#C8102E;font-weight:700;margin-bottom:6px}
+h1{font-size:28px;font-weight:700;color:#1B2A4A;line-height:1.1;margin-bottom:6px}
+.subtitle{color:#4A5568;font-size:13px;margin-bottom:28px}
+
+/* CARDS */
+.card{background:#fff;border-radius:8px;padding:22px 26px;margin-bottom:14px;box-shadow:0 1px 6px rgba(27,42,74,.07);border:1px solid #E2E6EF}
+.card-title{font-size:9px;letter-spacing:.28em;color:#1B2A4A;font-weight:700;margin-bottom:12px}
+
+/* API KEY INPUT */
+.key-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.key-input{flex:1;min-width:200px;padding:10px 14px;border:1.5px solid #E2E6EF;border-radius:5px;font-family:Georgia,serif;font-size:13px;color:#1B2A4A;background:#FAFBFD;outline:none;font-family:monospace}
+.key-input:focus{border-color:#1B2A4A}
+.key-note{font-size:11px;color:#8A9BB5;margin-top:6px}
+.key-status{font-size:11px;font-weight:700;padding:4px 10px;border-radius:4px}
+.key-ok{color:#1A3D2B;background:#EAF5EE}
+.key-err{color:#7F1D1D;background:#FEF2F2}
+
+/* MARKETS */
+.state-hdr{font-size:9px;letter-spacing:.3em;color:#8A9BB5;font-weight:700;text-transform:uppercase;padding:12px 0 7px;border-bottom:1px solid #E2E6EF;margin-bottom:8px;margin-top:4px}
+.market-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:7px;margin-bottom:4px}
+.mkt-btn{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:8px 12px;background:#FAFBFD;border:1.5px solid #E2E6EF;border-radius:5px;cursor:pointer;font-family:Georgia,serif;font-size:12.5px;color:#1B2A4A;transition:all .15s}
+.mkt-btn:hover{background:#EEF2FF;border-color:#1B2A4A}
+.mkt-btn.active{background:#EEF2FF;border-color:#1B2A4A;font-weight:700}
+.mkt-state{font-size:8px;letter-spacing:.2em;color:#8A9BB5;display:block;margin-bottom:1px}
+.mkt-check{width:14px;height:14px;border-radius:3px;border:2px solid #C8D0E0;background:transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;font-weight:900;transition:all .15s}
+.mkt-btn.active .mkt-check{background:#1B2A4A;border-color:#1B2A4A;color:#fff}
+
+/* CONTROLS */
+.controls-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.run-btn{padding:11px 26px;background:#C8102E;color:#fff;border:none;border-radius:5px;font-size:14px;font-weight:700;cursor:pointer;font-family:Georgia,serif;letter-spacing:.04em;transition:background .2s}
+.run-btn:hover{background:#a00d24}
+.run-btn:disabled{background:#8A9BB5;cursor:not-allowed}
+.clear-btn{padding:11px 18px;background:transparent;color:#4A5568;border:1.5px solid #E2E6EF;border-radius:5px;font-size:13px;cursor:pointer;font-family:Georgia,serif}
+.clear-btn:hover{border-color:#1B2A4A;color:#1B2A4A}
+.sel-count{font-size:12px;color:#8A9BB5}
+
+/* FILTERS */
+.filters-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.filter-select{padding:8px 12px;border:1.5px solid #E2E6EF;border-radius:5px;font-family:Georgia,serif;font-size:13px;color:#1B2A4A;background:#FAFBFD;cursor:pointer;outline:none}
+.filter-select:focus{border-color:#1B2A4A}
+.wage-filter{display:flex;align-items:center;gap:8px;font-size:12px;color:#4A5568}
+.wage-input{width:80px;padding:7px 10px;border:1.5px solid #E2E6EF;border-radius:5px;font-family:Georgia,serif;font-size:13px;color:#1B2A4A;background:#FAFBFD;outline:none}
+
+/* PROGRESS */
+.progress-bar-wrap{background:#E2E6EF;border-radius:4px;height:6px;margin:12px 0 4px;display:none}
+.progress-bar{height:6px;background:#C8102E;border-radius:4px;width:0%;transition:width .3s}
+.progress-label{font-size:11px;color:#8A9BB5}
+
+/* RESULTS */
+.results-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.results-title{font-size:16px;font-weight:700;color:#1B2A4A}
+.results-meta{font-size:11px;color:#8A9BB5}
+.export-btn{padding:7px 16px;background:#1B2A4A;color:#fff;border:none;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;font-family:Georgia,serif}
+
+/* JOB CARDS */
+.job-grid{display:flex;flex-direction:column;gap:8px}
+.job-card{background:#fff;border:1px solid #E2E6EF;border-radius:7px;padding:14px 18px;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;transition:box-shadow .15s}
+.job-card:hover{box-shadow:0 2px 10px rgba(27,42,74,.1)}
+.job-left{flex:1;min-width:200px}
+.job-title{font-size:14px;font-weight:700;color:#1B2A4A;margin-bottom:3px}
+.job-co{font-size:12.5px;color:#4A5568;margin-bottom:4px}
+.job-meta{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.job-loc{font-size:11px;color:#8A9BB5}
+.job-src{font-size:10px;background:#F0F2F8;color:#8A9BB5;padding:2px 7px;border-radius:3px}
+.job-age{font-size:10px;color:#8A9BB5}
+.badge-comp{font-size:10px;background:#FEF3C7;color:#92400E;padding:2px 7px;border-radius:3px;font-weight:700}
+.badge-sec{font-size:10px;background:#DBEAFE;color:#1E40AF;padding:2px 7px;border-radius:3px;font-weight:700}
+.job-right{text-align:right;flex-shrink:0}
+.job-wage{font-size:14px;font-weight:700;color:#1A3D2B;margin-bottom:4px}
+.job-wage.no-wage{color:#9AA8C0;font-size:12px;font-weight:400}
+.job-link{font-size:11px;color:#C8102E;text-decoration:none}
+.job-link:hover{text-decoration:underline}
+.job-desc{font-size:11.5px;color:#6B7A8D;margin-top:6px;line-height:1.5}
+
+/* EMPTY / ERROR */
+.empty{text-align:center;padding:40px;color:#8A9BB5;font-size:14px}
+.error-msg{background:#FEF2F2;border:1px solid #FECACA;border-radius:6px;padding:12px 16px;color:#7F1D1D;font-size:13px;margin-bottom:12px}
+
+/* SUMMARY BAR */
+.summary-bar{display:flex;gap:20px;flex-wrap:wrap;background:#F7F8FA;border:1px solid #E2E6EF;border-radius:7px;padding:14px 18px;margin-bottom:14px}
+.summary-stat{text-align:center}
+.summary-num{font-size:22px;font-weight:700;color:#1B2A4A;line-height:1}
+.summary-lbl{font-size:9px;letter-spacing:.15em;color:#8A9BB5;margin-top:2px}
+
+/* NO WAGE TOGGLE */
+.toggle-row{display:flex;align-items:center;gap:8px;font-size:12px;color:#4A5568}
+.toggle{width:34px;height:18px;background:#E2E6EF;border-radius:9px;position:relative;cursor:pointer;transition:background .2s}
+.toggle.on{background:#1B2A4A}
+.toggle::after{content:'';width:14px;height:14px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:left .2s}
+.toggle.on::after{left:18px}
+
+@media print{.topbar,.controls-card,.markets-card,.filters-card,.run-btn,.clear-btn,.export-btn,.key-card{display:none!important}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <svg width="34" height="42" viewBox="0 0 36 44" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="0,40 0,12 18,0 36,12 36,40 18,44" fill="#C8102E"/>
+      <polygon points="4,37 4,15 18,4 32,15 32,37 18,41" fill="#1B2A4A"/>
+      <text x="18" y="30" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="13">PM</text>
+    </svg>
+    <div>
+      <div class="logo-name">PER MAR</div>
+      <div class="logo-sub">SECURITY SERVICES</div>
+    </div>
+  </div>
+  <div class="topbar-label">INTERNAL · JOB MARKET MONITOR</div>
+</div>
+
+<div class="page">
+
+  <div class="eyebrow">SECURITY OFFICER</div>
+  <h1>Job Posting Monitor</h1>
+  <p class="subtitle">Search live security officer postings across your markets via Google Jobs. Paste your SerpAPI key, select markets, and run.</p>
+
+  <!-- API KEY -->
+  <div class="card key-card">
+    <div class="card-title">SERPAPI KEY</div>
+    <div class="key-row">
+      <input class="key-input" id="api-key" type="password" placeholder="Paste your SerpAPI key here…" autocomplete="off"/>
+      <button class="run-btn" style="padding:10px 18px;font-size:13px" onclick="testKey()">Test Key</button>
+      <span id="key-status"></span>
+    </div>
+    <div class="key-note">Your key is never stored — it stays in your browser only for this session. Close the tab and it's gone.</div>
+  </div>
+
+  <!-- MARKETS -->
+  <div class="card markets-card">
+    <div class="card-title">SELECT MARKETS TO SEARCH</div>
+    <div id="market-index"></div>
+    <div class="controls-row">
+      <button class="run-btn" id="run-btn" onclick="runSearch()" disabled>&#128269; Search Selected Markets</button>
+      <button class="clear-btn" onclick="clearSelection()">Clear All</button>
+      <span class="sel-count" id="sel-count">0 markets selected</span>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="card filters-card">
+    <div class="card-title">FILTERS</div>
+    <div class="filters-row">
+      <select class="filter-select" id="filter-type">
+        <option value="all">All role types</option>
+        <option value="sec">Security only</option>
+        <option value="comp">Comparable roles only</option>
+      </select>
+      <select class="filter-select" id="filter-age">
+        <option value="all">Any date posted</option>
+        <option value="3">Posted in last 3 days</option>
+        <option value="7">Posted in last 7 days</option>
+        <option value="14">Posted in last 14 days</option>
+      </select>
+      <div class="wage-filter">
+        Min wage $<input class="wage-input" id="filter-wage" type="number" placeholder="e.g. 15" min="0" max="50" step="0.5"/>
+        /hr
+      </div>
+      <div class="toggle-row">
+        <div class="toggle" id="wage-toggle" onclick="this.classList.toggle('on')"></div>
+        Hide postings with no wage listed
+      </div>
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div id="progress-wrap" style="display:none">
+    <div class="card" style="padding:16px 22px">
+      <div class="progress-bar-wrap" style="display:block"><div class="progress-bar" id="progress-bar"></div></div>
+      <div class="progress-label" id="progress-label">Starting search…</div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results-section" style="display:none">
+    <div class="results-header">
+      <div>
+        <div class="results-title" id="results-title">Results</div>
+        <div class="results-meta" id="results-meta"></div>
+      </div>
+      <button class="export-btn" onclick="exportCSV()">&#8595; Export CSV</button>
+    </div>
+    <div class="summary-bar" id="summary-bar"></div>
+    <div id="error-area"></div>
+    <div class="job-grid" id="job-grid"></div>
+  </div>
+
+</div>
+
+<script>
+// ── MARKETS ──────────────────────────────────────────────────────────────────
+const MARKETS = [
+  // Iowa
+  {id:'davenport',    name:'Davenport / Quad Cities', state:'IA', query:'security officer Davenport Iowa'},
+  {id:'des-moines',   name:'Des Moines',               state:'IA', query:'security officer Des Moines Iowa'},
+  {id:'cedar-rapids', name:'Cedar Rapids',             state:'IA', query:'security officer Cedar Rapids Iowa'},
+  {id:'iowa-city',    name:'Iowa City',                state:'IA', query:'security officer Iowa City Iowa'},
+  {id:'waterloo',     name:'Waterloo / Cedar Falls',   state:'IA', query:'security officer Waterloo Iowa'},
+  {id:'dubuque',      name:'Dubuque',                  state:'IA', query:'security officer Dubuque Iowa'},
+  {id:'sioux-city',   name:'Sioux City',               state:'IA', query:'security officer Sioux City Iowa'},
+  {id:'mason-city',   name:'Mason City',               state:'IA', query:'security officer Mason City Iowa'},
+  {id:'fort-dodge',   name:'Fort Dodge',               state:'IA', query:'security officer Fort Dodge Iowa'},
+  {id:'marshalltown', name:'Marshalltown',             state:'IA', query:'security officer Marshalltown Iowa'},
+  {id:'clinton',      name:'Clinton',                  state:'IA', query:'security officer Clinton Iowa'},
+  {id:'muscatine',    name:'Muscatine',                state:'IA', query:'security officer Muscatine Iowa'},
+  {id:'burlington',   name:'Burlington',               state:'IA', query:'security officer Burlington Iowa'},
+  {id:'ottumwa',      name:'Ottumwa',                  state:'IA', query:'security officer Ottumwa Iowa'},
+  // Illinois
+  {id:'moline',       name:'Moline / Rock Island',     state:'IL', query:'security officer Moline Illinois'},
+  {id:'galesburg',    name:'Galesburg',                state:'IL', query:'security officer Galesburg Illinois'},
+  {id:'peoria',       name:'Peoria',                   state:'IL', query:'security officer Peoria Illinois'},
+  {id:'bloomington',  name:'Bloomington-Normal',       state:'IL', query:'security officer Bloomington Illinois'},
+  {id:'rockford',     name:'Rockford',                 state:'IL', query:'security officer Rockford Illinois'},
+  {id:'quincy',       name:'Quincy',                   state:'IL', query:'security officer Quincy Illinois'},
+  // Wisconsin
+  {id:'milwaukee',    name:'Milwaukee',                state:'WI', query:'security officer Milwaukee Wisconsin'},
+  {id:'madison',      name:'Madison',                  state:'WI', query:'security officer Madison Wisconsin'},
+  {id:'green-bay',    name:'Green Bay',                state:'WI', query:'security officer Green Bay Wisconsin'},
+  {id:'appleton',     name:'Appleton / Fox Cities',    state:'WI', query:'security officer Appleton Wisconsin'},
+  {id:'wausau',       name:'Wausau',                   state:'WI', query:'security officer Wausau Wisconsin'},
+  {id:'la-crosse',    name:'La Crosse',                state:'WI', query:'security officer La Crosse Wisconsin'},
+  {id:'eau-claire',   name:'Eau Claire',               state:'WI', query:'security officer Eau Claire Wisconsin'},
+  // Minnesota
+  {id:'minneapolis',  name:'Minneapolis–St. Paul',     state:'MN', query:'security officer Minneapolis Minnesota'},
+  {id:'rochester',    name:'Rochester',                state:'MN', query:'security officer Rochester Minnesota'},
+  {id:'duluth',       name:'Duluth',                   state:'MN', query:'security officer Duluth Minnesota'},
+  {id:'mankato',      name:'Mankato',                  state:'MN', query:'security officer Mankato Minnesota'},
+  {id:'st-cloud',     name:'St. Cloud',                state:'MN', query:'security officer St Cloud Minnesota'},
+];
+
+const STATES = {
+  IA: 'Iowa',
+  IL: 'Illinois',
+  WI: 'Wisconsin',
+  MN: 'Minnesota',
+};
+
+const COMP_KEYWORDS = ['convenience','store','retail','loss prevention','cashier','associate','warehouse','logistics'];
+const SEC_KEYWORDS  = ['security','guard','officer','patrol','surveillance'];
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+const selectedMarkets = new Set();
+let allResults = [];
+
+// ── RENDER MARKET INDEX ──────────────────────────────────────────────────────
+function renderMarkets() {
+  const container = document.getElementById('market-index');
+  const grouped = {};
+  MARKETS.forEach(m => {
+    if (!grouped[m.state]) grouped[m.state] = [];
+    grouped[m.state].push(m);
+  });
+
+  container.innerHTML = '';
+  Object.entries(grouped).forEach(([st, markets]) => {
+    const hdr = document.createElement('div');
+    hdr.className = 'state-hdr';
+    hdr.textContent = STATES[st];
+    container.appendChild(hdr);
+
+    const grid = document.createElement('div');
+    grid.className = 'market-grid';
+    markets.forEach(m => {
+      const btn = document.createElement('button');
+      btn.className = 'mkt-btn';
+      btn.id = 'mkt-' + m.id;
+      btn.onclick = () => toggleMarket(m.id);
+
+      const check = document.createElement('div');
+      check.className = 'mkt-check';
+      check.id = 'chk-' + m.id;
+
+      const label = document.createElement('div');
+      const stSpan = document.createElement('span');
+      stSpan.className = 'mkt-state';
+      stSpan.textContent = m.state;
+      label.appendChild(stSpan);
+      label.appendChild(document.createTextNode(m.name));
+
+      btn.appendChild(check);
+      btn.appendChild(label);
+      grid.appendChild(btn);
+    });
+    container.appendChild(grid);
+  });
+}
+
+function toggleMarket(id) {
+  if (selectedMarkets.has(id)) {
+    selectedMarkets.delete(id);
+    document.getElementById('mkt-' + id).classList.remove('active');
+    document.getElementById('chk-' + id).textContent = '';
+  } else {
+    selectedMarkets.add(id);
+    document.getElementById('mkt-' + id).classList.add('active');
+    document.getElementById('chk-' + id).textContent = '✓';
+  }
+  updateSelCount();
+}
+
+function clearSelection() {
+  selectedMarkets.clear();
+  document.querySelectorAll('.mkt-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.mkt-check').forEach(c => c.textContent = '');
+  updateSelCount();
+}
+
+function updateSelCount() {
+  const n = selectedMarkets.size;
+  document.getElementById('sel-count').textContent = n + ' market' + (n !== 1 ? 's' : '') + ' selected';
+  document.getElementById('run-btn').disabled = n === 0 || !document.getElementById('api-key').value.trim();
+}
+
+// ── TEST KEY ─────────────────────────────────────────────────────────────────
+async function testKey() {
+  const key = document.getElementById('api-key').value.trim();
+  const status = document.getElementById('key-status');
+  if (!key) { status.className = 'key-status key-err'; status.textContent = 'Enter a key first'; return; }
+  status.className = 'key-status'; status.textContent = 'Testing…';
+  try {
+    // Use a minimal search call — the account endpoint blocks CORS from browsers
+    const url = 'https://serpapi.com/search.json?engine=google_jobs' +
+      '&q=security+officer+Davenport+Iowa' +
+      '&num=1' +
+      '&api_key=' + encodeURIComponent(key);
+    const res  = await fetch(url);
+    const data = await res.json();
+    if (data.error) {
+      status.className = 'key-status key-err';
+      status.textContent = '✗ ' + data.error;
+    } else {
+      status.className = 'key-status key-ok';
+      status.textContent = '✓ Key valid — connected to SerpAPI';
+      updateSelCount();
+    }
+  } catch(e) {
+    status.className = 'key-status key-err';
+    status.textContent = '✗ ' + e.message;
+  }
+}
+
+// ── PARSE WAGE ────────────────────────────────────────────────────────────────
+function parseWageLow(salary) {
+  if (!salary) return null;
+  const match = salary.match(/\$?([\d,]+(?:\.\d+)?)/);
+  if (!match) return null;
+  const val = parseFloat(match[1].replace(',',''));
+  // If annual, convert (assume 2080 hours)
+  if (salary.toLowerCase().includes('year') || salary.toLowerCase().includes('annual') || val > 500) {
+    return val / 2080;
+  }
+  return val;
+}
+
+function classifyRole(title) {
+  const t = title.toLowerCase();
+  if (SEC_KEYWORDS.some(k => t.includes(k))) return 'sec';
+  if (COMP_KEYWORDS.some(k => t.includes(k))) return 'comp';
+  return 'sec'; // default
+}
+
+function daysAgo(dateStr) {
+  if (!dateStr) return null;
+  const lower = dateStr.toLowerCase();
+  if (lower.includes('hour') || lower.includes('just') || lower.includes('today')) return 0;
+  const d = lower.match(/(\d+)\s*day/);
+  if (d) return parseInt(d[1]);
+  const w = lower.match(/(\d+)\s*week/);
+  if (w) return parseInt(w[1]) * 7;
+  const m = lower.match(/(\d+)\s*month/);
+  if (m) return parseInt(m[1]) * 30;
+  return null;
+}
+
+// ── SEARCH ────────────────────────────────────────────────────────────────────
+async function runSearch() {
+  const key = document.getElementById('api-key').value.trim();
+  if (!key || selectedMarkets.size === 0) return;
+
+  const markets = MARKETS.filter(m => selectedMarkets.has(m.id));
+  allResults = [];
+
+  document.getElementById('results-section').style.display = 'none';
+  document.getElementById('progress-wrap').style.display = 'block';
+  document.getElementById('run-btn').disabled = true;
+  document.getElementById('error-area').innerHTML = '';
+
+  const bar   = document.getElementById('progress-bar');
+  const label = document.getElementById('progress-label');
+  const errors = [];
+
+  for (let i = 0; i < markets.length; i++) {
+    const m = markets[i];
+    const pct = Math.round((i / markets.length) * 100);
+    bar.style.width = pct + '%';
+    label.textContent = 'Searching ' + m.name + '… (' + (i+1) + ' of ' + markets.length + ')';
+
+    try {
+      const url = 'https://serpapi.com/search.json?engine=google_jobs' +
+        '&q=' + encodeURIComponent(m.query) +
+        '&location=' + encodeURIComponent(m.name + ', ' + m.state) +
+        '&chips=date_posted%3Amonth' +
+        '&api_key=' + encodeURIComponent(key);
+
+      const res  = await fetch(url);
+      const data = await res.json();
+
+      if (data.error) {
+        errors.push(m.name + ': ' + data.error);
+        continue;
+      }
+
+      const jobs = data.jobs_results || [];
+      jobs.forEach(j => {
+        allResults.push({
+          market:    m.name,
+          state:     m.state,
+          title:     j.title || '',
+          company:   j.company_name || '',
+          location:  j.location || m.name + ', ' + m.state,
+          salary:    j.detected_extensions && j.detected_extensions.salary ? j.detected_extensions.salary : null,
+          wageLow:   parseWageLow(j.detected_extensions && j.detected_extensions.salary ? j.detected_extensions.salary : null),
+          posted:    j.detected_extensions && j.detected_extensions.posted_at ? j.detected_extensions.posted_at : null,
+          daysAgo:   daysAgo(j.detected_extensions && j.detected_extensions.posted_at ? j.detected_extensions.posted_at : null),
+          source:    j.via || 'Google Jobs',
+          link:      j.share_link || null,
+          snippet:   j.description ? j.description.slice(0,160) + '…' : '',
+          kind:      classifyRole(j.title || ''),
+        });
+      });
+    } catch(e) {
+      errors.push(m.name + ': ' + e.message);
+    }
+
+    // Small delay to avoid rate limiting
+    if (i < markets.length - 1) await new Promise(r => setTimeout(r, 300));
+  }
+
+  bar.style.width = '100%';
+  label.textContent = 'Done — ' + allResults.length + ' postings found across ' + markets.length + ' markets.';
+
+  setTimeout(() => {
+    document.getElementById('progress-wrap').style.display = 'none';
+    document.getElementById('run-btn').disabled = false;
+    renderResults(errors);
+  }, 600);
+}
+
+// ── RENDER RESULTS ────────────────────────────────────────────────────────────
+function renderResults(errors) {
+  const typeFilter  = document.getElementById('filter-type').value;
+  const ageFilter   = parseInt(document.getElementById('filter-age').value) || null;
+  const wageFilter  = parseFloat(document.getElementById('filter-wage').value) || null;
+  const hideNoWage  = document.getElementById('wage-toggle').classList.contains('on');
+
+  let jobs = allResults.filter(j => {
+    if (typeFilter !== 'all' && j.kind !== typeFilter) return false;
+    if (ageFilter && j.daysAgo !== null && j.daysAgo > ageFilter) return false;
+    if (wageFilter && j.wageLow !== null && j.wageLow < wageFilter) return false;
+    if (hideNoWage && !j.salary) return false;
+    return true;
+  });
+
+  // Sort: security first, then by days ago ascending
+  jobs.sort((a,b) => {
+    if (a.kind !== b.kind) return a.kind === 'sec' ? -1 : 1;
+    const da = a.daysAgo ?? 999, db = b.daysAgo ?? 999;
+    return da - db;
+  });
+
+  const section = document.getElementById('results-section');
+  section.style.display = 'block';
+
+  document.getElementById('results-title').textContent =
+    jobs.length + ' Posting' + (jobs.length !== 1 ? 's' : '') + ' Found';
+  document.getElementById('results-meta').textContent =
+    new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}) +
+    '  ·  ' + selectedMarkets.size + ' markets searched';
+
+  // Summary stats
+  const secCount  = jobs.filter(j => j.kind === 'sec').length;
+  const compCount = jobs.filter(j => j.kind === 'comp').length;
+  const withWage  = jobs.filter(j => j.salary);
+  const wageVals  = withWage.map(j => j.wageLow).filter(Boolean);
+  const avgWage   = wageVals.length ? (wageVals.reduce((a,b)=>a+b,0)/wageVals.length).toFixed(2) : null;
+  const minWage   = wageVals.length ? Math.min(...wageVals).toFixed(2) : null;
+  const maxWage   = wageVals.length ? Math.max(...wageVals).toFixed(2) : null;
+
+  const summaryBar = document.getElementById('summary-bar');
+  summaryBar.innerHTML = '';
+  const stats = [
+    {n: jobs.length,         l: 'TOTAL POSTINGS'},
+    {n: secCount,            l: 'SECURITY ROLES'},
+    {n: compCount,           l: 'COMPARABLE ROLES'},
+    {n: withWage.length,     l: 'WITH WAGE LISTED'},
+    {n: avgWage ? '$'+avgWage+'/hr' : '—', l: 'AVG STARTING WAGE'},
+    {n: minWage ? '$'+minWage : '—',       l: 'LOWEST WAGE'},
+    {n: maxWage ? '$'+maxWage : '—',       l: 'HIGHEST WAGE'},
+  ];
+  stats.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'summary-stat';
+    div.innerHTML = '<div class="summary-num">' + s.n + '</div><div class="summary-lbl">' + s.l + '</div>';
+    summaryBar.appendChild(div);
+  });
+
+  // Errors
+  const errArea = document.getElementById('error-area');
+  errArea.innerHTML = '';
+  if (errors && errors.length) {
+    const div = document.createElement('div');
+    div.className = 'error-msg';
+    div.textContent = 'Some markets had errors: ' + errors.join('; ');
+    errArea.appendChild(div);
+  }
+
+  // Job cards
+  const grid = document.getElementById('job-grid');
+  grid.innerHTML = '';
+
+  if (jobs.length === 0) {
+    grid.innerHTML = '<div class="empty">No postings matched your filters. Try broadening the search criteria.</div>';
+    return;
+  }
+
+  jobs.forEach(j => {
+    const card = document.createElement('div');
+    card.className = 'job-card';
+
+    const left = document.createElement('div');
+    left.className = 'job-left';
+
+    const title = document.createElement('div');
+    title.className = 'job-title';
+    title.textContent = j.title;
+
+    const co = document.createElement('div');
+    co.className = 'job-co';
+    co.textContent = j.company;
+
+    const meta = document.createElement('div');
+    meta.className = 'job-meta';
+
+    const loc = document.createElement('span');
+    loc.className = 'job-loc';
+    loc.textContent = j.location;
+
+    const src = document.createElement('span');
+    src.className = 'job-src';
+    src.textContent = j.source.replace('via ','');
+
+    const badge = document.createElement('span');
+    badge.className = j.kind === 'sec' ? 'badge-sec' : 'badge-comp';
+    badge.textContent = j.kind === 'sec' ? 'Security' : 'Comparable';
+
+    meta.appendChild(loc);
+    meta.appendChild(src);
+    meta.appendChild(badge);
+    if (j.posted) {
+      const age = document.createElement('span');
+      age.className = 'job-age';
+      age.textContent = j.posted;
+      meta.appendChild(age);
+    }
+
+    if (j.snippet) {
+      const desc = document.createElement('div');
+      desc.className = 'job-desc';
+      desc.textContent = j.snippet;
+      left.appendChild(title);
+      left.appendChild(co);
+      left.appendChild(meta);
+      left.appendChild(desc);
+    } else {
+      left.appendChild(title);
+      left.appendChild(co);
+      left.appendChild(meta);
+    }
+
+    const right = document.createElement('div');
+    right.className = 'job-right';
+
+    const wage = document.createElement('div');
+    wage.className = j.salary ? 'job-wage' : 'job-wage no-wage';
+    wage.textContent = j.salary || 'Wage not listed';
+    right.appendChild(wage);
+
+    if (j.link) {
+      const link = document.createElement('a');
+      link.className = 'job-link';
+      link.href = j.link;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = 'View posting →';
+      right.appendChild(link);
+    }
+
+    card.appendChild(left);
+    card.appendChild(right);
+    grid.appendChild(card);
+  });
+}
+
+// ── EXPORT CSV ────────────────────────────────────────────────────────────────
+function exportCSV() {
+  if (!allResults.length) return;
+  const headers = ['Market','State','Title','Company','Location','Wage','Days Ago','Source','Type','Link'];
+  const rows = allResults.map(j => [
+    j.market, j.state, j.title, j.company, j.location,
+    j.salary || '', j.daysAgo !== null ? j.daysAgo : '',
+    j.source.replace('via ',''), j.kind === 'sec' ? 'Security' : 'Comparable',
+    j.link || ''
+  ]);
+  const csv = [headers, ...rows].map(r =>
+    r.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(',')
+  ).join('\n');
+
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'PerMar-JobMonitor-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Re-render when filters change
+document.getElementById('filter-type').onchange =
+document.getElementById('filter-age').onchange  =
+document.getElementById('filter-wage').oninput  = () => { if (allResults.length) renderResults([]); };
+document.getElementById('wage-toggle').onclick  = () => { if (allResults.length) setTimeout(() => renderResults([]), 50); };
+document.getElementById('api-key').oninput      = updateSelCount;
+
+// Init
+renderMarkets();
+</script>
+</body>
+</html>
