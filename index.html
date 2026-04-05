@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Per Mar — Wage Intelligence</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Georgia,"Times New Roman",serif;background:#F7F8FA;color:#1B2A4A;min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:#1B2A4A;padding:14px 32px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.logo-name{font-size:17px;font-weight:700;color:#fff;letter-spacing:1.5px}
+.logo-sub{font-size:7.5px;letter-spacing:2.5px;color:#8A9BB5}
+.page{max-width:760px;margin:0 auto;padding:52px 24px 80px;flex:1}
+.eyebrow{font-size:8px;letter-spacing:.3em;color:#C8102E;font-weight:700;margin-bottom:6px}
+h1{font-size:30px;font-weight:700;color:#1B2A4A;margin-bottom:8px}
+.subtitle{font-size:14px;color:#4A5568;margin-bottom:40px;line-height:1.6}
+.tools{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:560px){.tools{grid-template-columns:1fr}}
+.tool-card{background:#fff;border:1px solid #E2E6EF;border-radius:10px;padding:28px 26px;text-decoration:none;color:inherit;transition:all .18s;display:flex;flex-direction:column;box-shadow:0 1px 6px rgba(27,42,74,.07)}
+.tool-card:hover{border-color:#1B2A4A;box-shadow:0 4px 16px rgba(27,42,74,.12);transform:translateY(-2px)}
+.tool-badge{font-size:7.5px;letter-spacing:.25em;font-weight:700;padding:3px 8px;border-radius:3px;margin-bottom:14px;display:inline-block;width:fit-content}
+.badge-stable{background:#EEF2FF;color:#1B2A4A}
+.badge-new{background:#EAF5EE;color:#1A3D2B}
+.tool-title{font-size:17px;font-weight:700;color:#1B2A4A;margin-bottom:6px}
+.tool-desc{font-size:12.5px;color:#4A5568;line-height:1.6;flex:1;margin-bottom:18px}
+.tool-features{list-style:none;margin-bottom:20px}
+.tool-features li{font-size:12px;color:#6B7A8D;padding:3px 0;display:flex;align-items:flex-start;gap:7px}
+.tool-features li::before{content:'·';color:#C8102E;font-weight:700;flex-shrink:0}
+.tool-arrow{font-size:13px;font-weight:700;color:#C8102E}
+.divider{height:1px;background:#E2E6EF;margin:40px 0}
+.note{font-size:11.5px;color:#8A9BB5;text-align:center;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <svg width="32" height="40" viewBox="0 0 36 44" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="0,40 0,12 18,0 36,12 36,40 18,44" fill="#C8102E"/>
+    <polygon points="4,37 4,15 18,4 32,15 32,37 18,41" fill="#1B2A4A"/>
+    <text x="18" y="30" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="13">PM</text>
+  </svg>
+  <div>
+    <div class="logo-name">PER MAR</div>
+    <div class="logo-sub">SECURITY SERVICES</div>
+  </div>
+</div>
+
+<div class="page">
+  <div class="eyebrow">INTERNAL TOOLS</div>
+  <h1>Security Officer Wage Intelligence</h1>
+  <p class="subtitle">Two tools for understanding security officer compensation across Per Mar's operating territory. Both produce client-ready PDF reports.</p>
+
+  <div class="tools">
+
+    <a class="tool-card" href="permar-wage-tool.html">
+      <span class="tool-badge badge-stable">MARKET BROWSER</span>
+      <div class="tool-title">Pre-Loaded Market Analyzer</div>
+      <div class="tool-desc">Browse 35 pre-loaded markets across Iowa, Illinois, Wisconsin, and Minnesota with static BLS-anchored wage data and estimated comparable postings.</div>
+      <ul class="tool-features">
+        <li>35 markets across IA, IL, WI, MN</li>
+        <li>Static wage ranges — no API needed</li>
+        <li>Skills checkboxes adjust wage range</li>
+        <li>Client-ready 3-page PDF report</li>
+        <li>Live postings via SerpAPI (optional)</li>
+      </ul>
+      <span class="tool-arrow">Open tool &rarr;</span>
+    </a>
+
+    <a class="tool-card" href="permar-wage-tool-v2.html">
+      <span class="tool-badge badge-new">NEW &nbsp;· &nbsp;LIVE DATA</span>
+      <div class="tool-title">Live Zip Code Analyzer</div>
+      <div class="tool-desc">Enter any US zip code for a real-time wage analysis built from live job postings and BLS data. Works anywhere — not limited to pre-loaded markets.</div>
+      <ul class="tool-features">
+        <li>Any US zip code</li>
+        <li>Live postings via SerpAPI + Cloudflare</li>
+        <li>Blends live data with BLS OEWS anchors</li>
+        <li>Confidence indicator based on sample size</li>
+        <li>Select postings to include in PDF</li>
+      </ul>
+      <span class="tool-arrow">Open tool &rarr;</span>
+    </a>
+
+  </div>
+
+  <div class="divider"></div>
+  <div class="note">
+    Per Mar Security Services &nbsp;·&nbsp; Internal Use Only &nbsp;·&nbsp; Not for distribution<br>
+    Live search requires SerpAPI key and Cloudflare Worker. Static market browsing works without any API.
+  </div>
+</div>
+</body>
+</html>
