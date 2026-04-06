@@ -122,6 +122,13 @@ h1{font-size:28px;font-weight:700;color:#1B2A4A;margin-bottom:16px}
 .k-comp{background:#FEF3C7;color:#92400E}
 .k-site{background:#EAF5EE;color:#1A3D2B}
 
+.ir-row{display:flex;gap:7px;align-items:center}
+.ir-num{font-size:10px;color:#8A9BB5;font-weight:700;width:18px;flex-shrink:0;text-align:right}
+.ir-name{flex:1;padding:8px 10px;border:1.5px solid #E2E6EF;border-radius:5px;font-family:Georgia,serif;font-size:12px;color:#1B2A4A;background:#FAFBFD;outline:none}
+.ir-name:focus{border-color:#1B2A4A}
+.ir-wage{width:90px;padding:8px 10px;border:1.5px solid #E2E6EF;border-radius:5px;font-family:Georgia,serif;font-size:12px;color:#1B2A4A;background:#FAFBFD;outline:none;text-align:center}
+.ir-wage:focus{border-color:#1B2A4A}
+.ir-wage::placeholder{color:#C8D0E0}
 /* SPINNER / ERROR */
 .spin{display:flex;align-items:center;gap:9px;padding:18px;font-size:12px;color:#8A9BB5}
 .spin-dot{width:7px;height:7px;background:#C8102E;border-radius:50%;animation:pulse 1s ease-in-out infinite}
@@ -176,7 +183,14 @@ h1{font-size:28px;font-weight:700;color:#1B2A4A;margin-bottom:16px}
       </select>
       <button class="go-btn" id="go-btn" onclick="runSearch()" disabled>Search Live Postings</button>
     </div>
-    <div style="font-size:11px;color:#8A9BB5;margin-top:8px">Searches Google Jobs for security and comparable roles over a 90-day window. BLS data fills gaps. <strong>v3.0</strong></div>
+    <div style="font-size:11px;color:#8A9BB5;margin-top:8px">Searches Google Jobs for security and comparable roles over a 90-day window. BLS data fills gaps. <strong>v3.3</strong></div>
+  </div>
+
+  <!-- INTERNAL RATES -->
+  <div class="card">
+    <div class="card-lbl">CURRENT PER MAR RATES IN THIS AREA (OPTIONAL)</div>
+    <div style="font-size:11px;color:#8A9BB5;margin-bottom:10px">Enter current officer pay rates for your existing sites. These are factored into the wage analysis alongside live postings — weighted equally.</div>
+    <div id="internal-rate-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;margin-bottom:6px"></div>
   </div>
 
   <!-- SKILLS -->
@@ -223,10 +237,8 @@ h1{font-size:28px;font-weight:700;color:#1B2A4A;margin-bottom:16px}
       <div class="tbl-note" id="tbl-note"></div>
     </div>
 
-    <!-- CURRENT PER MAR SITES (shown after search) -->
-    <div class="card" id="sites-card">
-      <div class="card-lbl">CURRENT PER MAR SITES IN THIS AREA (OPTIONAL)</div>
-      <div class="site-hint">Enter client site names and current officer pay rates to include on the PDF report. Leave blank to skip.</div>
+    <!-- CURRENT PER MAR SITES (hidden - input moved above search) -->
+    <div id="sites-card" style="display:none">
       <div class="site-grid" id="site-grid"></div>
     </div>
 
@@ -491,36 +503,48 @@ function skillAdj(){
 }
 
 // ═══════════════════════════════════════════════════════
-// CURRENT SITES INPUT
+// INTERNAL RATES INPUT
 // ═══════════════════════════════════════════════════════
-function renderSiteInputs(){
-  const g=document.getElementById("site-grid");g.innerHTML="";
+function renderInternalRates(){
+  const g=document.getElementById("internal-rate-grid");
+  if(!g||g.children.length>0)return; // only render once
   for(let i=1;i<=10;i++){
-    const row=document.createElement("div");row.className="site-row";
-    const num=document.createElement("span");num.className="site-num";num.textContent=i+".";
+    const row=document.createElement("div");row.className="ir-row";
+    const num=document.createElement("span");num.className="ir-num";num.textContent=i+".";
     const name=document.createElement("input");
-    name.className="site-name-in";name.type="text";name.id="site-name-"+i;
-    name.placeholder="Client / site name";
+    name.className="ir-name";name.type="text";name.id="ir-name-"+i;
+    name.placeholder="Client / site name (optional)";
     const wage=document.createElement("input");
-    wage.className="site-wage-in";wage.type="text";wage.id="site-wage-"+i;
+    wage.className="ir-wage";wage.type="text";wage.id="ir-wage-"+i;
     wage.placeholder="$0.00/hr";
     row.appendChild(num);row.appendChild(name);row.appendChild(wage);
     g.appendChild(row);
   }
 }
 
-function getCurrentSites(){
-  const sites=[];
+function getInternalRates(){
+  const rates=[];
   for(let i=1;i<=10;i++){
-    const name=(document.getElementById("site-name-"+i)||{value:""}).value.trim();
-    const wageRaw=(document.getElementById("site-wage-"+i)||{value:""}).value.trim();
-    if(name&&wageRaw){
+    const name=(document.getElementById("ir-name-"+i)||{value:""}).value.trim();
+    const wageRaw=(document.getElementById("ir-wage-"+i)||{value:""}).value.trim();
+    if(wageRaw){
       const parsed=parseSalaryStr(wageRaw.startsWith("$")?wageRaw:"$"+wageRaw);
-      if(parsed)sites.push({name,wage:parsed,display:dollar(parsed)+"/hr"});
+      if(parsed){
+        rates.push({
+          name:name||("Per Mar Site "+i),
+          wage:parsed,
+          display:dollar(parsed)+"/hr"
+        });
+      }
     }
   }
-  return sites;
+  return rates;
 }
+
+// Keep getCurrentSites as alias for PDF
+function getCurrentSites(){return getInternalRates();}
+
+function renderSiteInputs(){/* no-op: moved pre-search */}
 
 // ═══════════════════════════════════════════════════════
 // MAIN SEARCH
@@ -529,13 +553,42 @@ async function runSearch(){
   const zip=document.getElementById("zip").value.trim();
   const rad=parseInt(document.getElementById("rad").value);
   if(!zip||!apiOk())return;
-  const ll=ZLL[zip];
-  if(!ll){alert("Zip "+zip+" not in database. Try a nearby zip.");return;}
+  // Look up zip in local table first; fall back to Nominatim geocoding for any US zip
+  let ll=ZLL[zip];
+  let cityNameOverride=null;
+
+  if(!ll){
+    setP(3,"Looking up zip code location...");
+    document.getElementById("prog-wrap").style.display="block";
+    document.getElementById("pdf-btn").classList.remove("on");
+    try{
+      const geo=await fetch(
+        "https://nominatim.openstreetmap.org/search?postalcode="+encodeURIComponent(zip)+
+        "&country=US&format=json&limit=1",
+        {headers:{"Accept-Language":"en","User-Agent":"PerMarWageTool/3"}}
+      );
+      const gd=await geo.json();
+      if(gd&&gd.length>0){
+        ll=[parseFloat(gd[0].lat),parseFloat(gd[0].lon)];
+        // Extract city name from display_name (format: "City, County, State, US")
+        const parts=(gd[0].display_name||"").split(",");
+        const city=parts[0]?parts[0].trim():"";
+        const state=parts[2]?parts[2].trim():"";
+        cityNameOverride=city+(state?" "+state:"");
+      }
+    }catch(e){console.warn("Geocoding failed:",e);}
+    if(!ll){
+      document.getElementById("prog-wrap").style.display="none";
+      alert("Could not locate zip code "+zip+". Please check and try again.");
+      return;
+    }
+  }
 
   selPostings.clear();lastResult=null;
   document.getElementById("results").style.display="none";
   document.getElementById("prog-wrap").style.display="block";
   document.getElementById("pdf-btn").classList.remove("on");
+  document.getElementById("go-btn").disabled=true;
 
   const setP=(p,t)=>{
     document.getElementById("prog-fill").style.width=p+"%";
@@ -545,28 +598,45 @@ async function runSearch(){
   setP(5,"Looking up location...");
   const blsRow=nearestBLS(ll[0],ll[1]);
   const blsDist=Math.round(miles(ll[0],ll[1],blsRow[1],blsRow[2]));
-  const cityName=getCity(zip)||zip;
+  const cityName=cityNameOverride||getCity(zip)||zip;
   const w=getW(),k=getK();
 
-  async function serpFetch(q){
-    const url=w+"?engine=google_jobs&q="+encodeURIComponent(q)+"&num=10&hl=en&gl=us&api_key="+encodeURIComponent(k);
-    const r=await fetch(url);const d=await r.json();
-    return d.error?[]:(d.jobs_results||[]);
+  // Fetch one page of results
+  async function serpFetch(q, start){
+    const url=w+"?engine=google_jobs&q="+encodeURIComponent(q)+
+      "&num=10&start="+(start||0)+"&hl=en&gl=us&api_key="+encodeURIComponent(k);
+    try{
+      const r=await fetch(url);const d=await r.json();
+      return d.error?[]:(d.jobs_results||[]);
+    }catch(e){return[];}
   }
 
-  setP(20,"Searching security officer postings...");
+  // Fetch up to maxPages, stopping early if a page returns < 10 results
+  async function serpFetchPaged(q, maxPages){
+    let all=[], page=0;
+    while(page<maxPages){
+      const results=await serpFetch(q, page*10);
+      all=[...all,...results];
+      if(results.length<10)break; // no more results
+      page++;
+    }
+    return englishOnly(dedup(all));
+  }
+
+  setP(20,"Searching security officer postings (up to 5 pages)...");
   let secJobs=[];
   try{
-    const secQ='"security officer" OR "security guard" OR "unarmed security" '+cityName;
-    secJobs=englishOnly(dedup(await serpFetch(secQ)));
+    const secQ='"security officer" OR "security guard" OR "unarmed security" OR "site security" '+cityName;
+    secJobs=await serpFetchPaged(secQ, 5);
+    setP(55,"Found "+secJobs.length+" security postings...");
   }catch(e){console.warn("sec error",e);}
 
-  setP(50,"Searching comparable roles (convenience store, hospitality)...");
+  setP(60,"Searching comparable roles...");
   let compJobs=[];
   try{
-    // Broader comparable query: convenience store + hospitality/service roles that compete for same labor pool
     const compQ='"convenience store" OR "gas station" OR "hotel front desk" OR "loss prevention" OR "retail associate" OR "overnight cashier" OR "hotel security" '+cityName;
-    compJobs=englishOnly(dedup(await serpFetch(compQ)));
+    compJobs=await serpFetchPaged(compQ, 1);
+    setP(70,"Found "+compJobs.length+" comparable postings...");
   }catch(e){console.warn("comp error",e);}
 
   // Auto-widen if fewer than 5 wages
@@ -591,15 +661,21 @@ async function runSearch(){
 
   setP(88,"Analyzing wage data...");
 
-  // Extract wages
+  // Extract wages from postings
   const secParsed=secJobs.map(j=>parseJobWage(j)).filter(Boolean).map(p=>p.wage);
   const compParsed=compJobs.map(j=>parseJobWage(j)).filter(Boolean).map(p=>p.wage);
 
-  let liveP10=null,liveP25=null,liveMed=null,liveP75=null,liveP90=null;
-  const liveN=secParsed.length;
+  // Add internal Per Mar rates to the security wage pool (weighted equally)
+  const internalRates=getInternalRates();
+  const internalWages=internalRates.map(r=>r.wage);
+  const combinedSecWages=[...secParsed,...internalWages];
 
-  if(secParsed.length>=3){
-    const raw=[...secParsed].sort((a,b)=>a-b);
+  let liveP10=null,liveP25=null,liveMed=null,liveP75=null,liveP90=null;
+  const liveN=secParsed.length;         // external postings count for confidence
+  const combinedN=combinedSecWages.length; // total including internal
+
+  if(combinedN>=3){
+    const raw=[...combinedSecWages].sort((a,b)=>a-b);
     const rawMed=raw[Math.floor(raw.length/2)];
     const sorted=raw.filter(v=>v<=rawMed*2.5&&v>=rawMed*0.4);
     if(sorted.length>=2){
@@ -609,7 +685,7 @@ async function runSearch(){
     }
   }
 
-  const liveW=Math.min(liveN/10,1);
+  const liveW=Math.min(combinedN/10,1);
   const blsP=blsRow.slice(3);
 
   function blend(live,bls){return live===null?bls:parseFloat((live*liveW*0.7+bls*(1-liveW*0.7)).toFixed(2));}
@@ -621,8 +697,9 @@ async function runSearch(){
   const compMed=compParsed.length>0?parseFloat((compParsed.reduce((a,b)=>a+b,0)/compParsed.length).toFixed(2)):null;
 
   let conf,confCls,confDetail;
-  if(liveN>=8){conf="High Confidence";confCls="conf-h";confDetail=liveN+" postings with wages found";}
-  else if(liveN>=3){conf="Moderate Confidence";confCls="conf-m";confDetail=liveN+" wages found + BLS anchor";}
+  const internalNote=internalWages.length>0?" + "+internalWages.length+" internal rate"+(internalWages.length>1?"s":""):"";
+  if(combinedN>=8){conf="High Confidence";confCls="conf-h";confDetail=liveN+" postings"+internalNote+" with wages";}
+  else if(combinedN>=3){conf="Moderate Confidence";confCls="conf-m";confDetail=liveN+" external"+internalNote+" + BLS anchor";}
   else{conf="Low Confidence — BLS Primary";confCls="conf-l";confDetail="Fewer than 3 wages found. BLS weighted heavily.";}
 
   const spLow=parseFloat((med+0.50).toFixed(2));
@@ -631,10 +708,13 @@ async function runSearch(){
 
   setP(100,"Complete");
   lastResult={zip,rad,ll,blsRow,blsDist,cityName,widenNote,secJobs,compJobs,allJobs,
-    liveN,liveW,p10,p25,med,p75,p90,compMed,conf,confCls,confDetail,spLow,spHigh};
+    liveN,combinedN,internalRates,internalWages,liveW,p10,p25,med,p75,p90,compMed,
+    conf,confCls,confDetail,spLow,spHigh};
 
   setTimeout(()=>{
     document.getElementById("prog-wrap").style.display="none";
+    document.getElementById("go-btn").disabled=false;
+    chkApi();
     renderResults();
   },400);
 }
@@ -678,13 +758,11 @@ function renderResults(){
   if(r.liveN>=3)addRow("Live Postings (n="+r.liveN+")",r.p10,r.p25,r.med,r.p75,r.p90);
   addRow("BLS OEWS — "+r.blsRow[0],r.blsRow[3],r.blsRow[4],r.blsRow[5],r.blsRow[6],r.blsRow[7]);
   addRow("Blended Estimate",r.p10,r.p25,r.med,r.p75,r.p90);
+  const intNote=r.internalWages.length>0?" Includes "+r.internalWages.length+" internal Per Mar rate"+(r.internalWages.length>1?"s":"")+".":" ";
   document.getElementById("tbl-note").textContent=
-    "Live data: Google Jobs via SerpAPI (90-day window). BLS OEWS May 2023. Blend: "+
-    Math.round(r.liveW*70)+"% live / "+Math.round(100-r.liveW*70)+"% BLS. BLS anchor: "+
-    r.blsRow[0]+" ("+r.blsDist+" mi from zip).";
-
-  // Site inputs
-  renderSiteInputs();
+    "Live data: Google Jobs/SerpAPI (90-day window)."+intNote+" BLS OEWS May 2023. Blend: "+
+    Math.round(r.liveW*70)+"% live / "+Math.round(100-r.liveW*70)+"% BLS. Anchor: "+
+    r.blsRow[0]+" ("+r.blsDist+" mi).";
 
   // Postings
   document.getElementById("post-hdr-n").textContent=
@@ -838,7 +916,7 @@ function makePDF(){
     benchRow("BLS OEWS — "+r.blsRow[0],r.blsRow[3],r.blsRow[4],r.blsRow[5],r.blsRow[6],r.blsRow[7],false)+
     benchRow("Blended Estimate",r.p10,r.p25,r.med,r.p75,r.p90,true)+
     "</tbody></table></div>"+
-    "<div style='font-size:7.5pt;color:#9AA8C0;font-style:italic;margin-bottom:14px'>Live data: Google Jobs/SerpAPI (90-day window). BLS OEWS May 2023. Blend: "+Math.round(r.liveW*70)+"% live / "+Math.round(100-r.liveW*70)+"% BLS. BLS anchor: "+r.blsRow[0]+" ("+r.blsDist+" mi).</div>"+
+    "<div style='font-size:7.5pt;color:#9AA8C0;font-style:italic;margin-bottom:14px'>Live data: Google Jobs/SerpAPI (90-day window). "+(r.internalWages.length>0?"Includes "+r.internalWages.length+" internal Per Mar rate"+(r.internalWages.length>1?"s":"")+". ":"")+"BLS OEWS May 2023. Blend: "+Math.round(r.liveW*70)+"% live / "+Math.round(100-r.liveW*70)+"% BLS. Anchor: "+r.blsRow[0]+" ("+r.blsDist+" mi).</div>"+
 
     // Postings table
     "<div style='font-size:7pt;letter-spacing:2px;color:#fff;font-weight:700;background:#1B2A4A;padding:7px 10px;margin-bottom:0'>"+
@@ -879,6 +957,7 @@ function makePDF(){
 // INIT
 // ═══════════════════════════════════════════════════════
 renderSkills();
+renderInternalRates();
 document.getElementById("zip").addEventListener("input",function(){sanitizeZip(this);chkApi();});
 document.getElementById("zip").addEventListener("keydown",e=>{if(e.key==="Enter")runSearch();});
 </script>
