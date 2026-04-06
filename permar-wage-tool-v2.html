@@ -183,7 +183,7 @@ h1{font-size:28px;font-weight:700;color:#1B2A4A;margin-bottom:16px}
       </select>
       <button class="go-btn" id="go-btn" onclick="runSearch()" disabled>Search Live Postings</button>
     </div>
-    <div style="font-size:11px;color:#8A9BB5;margin-top:8px">Searches Google Jobs for security and comparable roles over a 90-day window. BLS data fills gaps. <strong>v3.3</strong></div>
+    <div style="font-size:11px;color:#8A9BB5;margin-top:8px">Searches Google Jobs for security and comparable roles over a 90-day window. BLS data fills gaps. <strong>v3.4</strong></div>
   </div>
 
   <!-- INTERNAL RATES -->
@@ -553,6 +553,13 @@ async function runSearch(){
   const zip=document.getElementById("zip").value.trim();
   const rad=parseInt(document.getElementById("rad").value);
   if(!zip||!apiOk())return;
+
+  // Define setP early so it can be used during geocoding
+  const setP=(p,t)=>{
+    document.getElementById("prog-fill").style.width=p+"%";
+    document.getElementById("prog-lbl").textContent=t;
+  };
+
   // Look up zip in local table first; fall back to Nominatim geocoding for any US zip
   let ll=ZLL[zip];
   let cityNameOverride=null;
@@ -589,11 +596,6 @@ async function runSearch(){
   document.getElementById("prog-wrap").style.display="block";
   document.getElementById("pdf-btn").classList.remove("on");
   document.getElementById("go-btn").disabled=true;
-
-  const setP=(p,t)=>{
-    document.getElementById("prog-fill").style.width=p+"%";
-    document.getElementById("prog-lbl").textContent=t;
-  };
 
   setP(5,"Looking up location...");
   const blsRow=nearestBLS(ll[0],ll[1]);
