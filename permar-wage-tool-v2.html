@@ -183,7 +183,7 @@ h1{font-size:28px;font-weight:700;color:#1B2A4A;margin-bottom:16px}
       </select>
       <button class="go-btn" id="go-btn" onclick="runSearch()" disabled>Search Live Postings</button>
     </div>
-    <div style="font-size:11px;color:#8A9BB5;margin-top:8px">Searches Google Jobs for security and comparable roles over a 90-day window. BLS data fills gaps. <strong>v3.5</strong></div>
+    <div style="font-size:11px;color:#8A9BB5;margin-top:8px">Searches Google Jobs for security and comparable roles over a 90-day window. BLS data fills gaps. <strong>v3.6</strong></div>
   </div>
 
   <!-- INTERNAL RATES -->
@@ -712,8 +712,10 @@ async function runSearch(){
   else if(combinedN>=3){conf="Moderate Confidence";confCls="conf-m";confDetail=liveN+" external"+internalNote+" + BLS anchor";}
   else{conf="Low Confidence — BLS Primary";confCls="conf-l";confDetail="Fewer than 3 wages found. BLS weighted heavily.";}
 
+  // Ensure spLow < spHigh: if median >= p75, use a fixed spread above median
   const spLow=parseFloat((med+0.50).toFixed(2));
-  const spHigh=parseFloat((p75-0.25).toFixed(2));
+  const spHighRaw=parseFloat((p75-0.25).toFixed(2));
+  const spHigh=spHighRaw>spLow ? spHighRaw : parseFloat((spLow+1.50).toFixed(2));
   const allJobs=[...secJobs.map(j=>({...j,_k:"sec"})),...compJobs.map(j=>({...j,_k:"comp"}))];
 
   setP(100,"Complete");
