@@ -183,7 +183,7 @@ h1{font-size:28px;font-weight:700;color:#1B2A4A;margin-bottom:16px}
       </select>
       <button class="go-btn" id="go-btn" onclick="runSearch()" disabled>Search Live Postings</button>
     </div>
-    <div style="font-size:11px;color:#8A9BB5;margin-top:8px">Searches Google Jobs for security and comparable roles over a 90-day window. BLS data fills gaps. <strong>v3.4</strong></div>
+    <div style="font-size:11px;color:#8A9BB5;margin-top:8px">Searches Google Jobs for security and comparable roles over a 90-day window. BLS data fills gaps. <strong>v3.5</strong></div>
   </div>
 
   <!-- INTERNAL RATES -->
@@ -603,23 +603,31 @@ async function runSearch(){
   const cityName=cityNameOverride||getCity(zip)||zip;
   const w=getW(),k=getK();
 
-  // Fetch one page of results
-  async function serpFetch(q, start){
-    const url=w+"?engine=google_jobs&q="+encodeURIComponent(q)+
-      "&num=10&start="+(start||0)+"&hl=en&gl=us&api_key="+encodeURIComponent(k);
+  // Fetch one page; returns {jobs, nextToken}
+  async function serpFetch(q, nextToken){
+    let url=w+"?engine=google_jobs&q="+encodeURIComponent(q)+
+      "&num=10&hl=en&gl=us&api_key="+encodeURIComponent(k);
+    if(nextToken) url+="&next_page_token="+encodeURIComponent(nextToken);
     try{
       const r=await fetch(url);const d=await r.json();
-      return d.error?[]:(d.jobs_results||[]);
-    }catch(e){return[];}
+      if(d.error)return{jobs:[],nextToken:null};
+      const nextTok=(d.serpapi_pagination&&d.serpapi_pagination.next_page_token)||null;
+      return{jobs:(d.jobs_results||[]),nextToken:nextTok};
+    }catch(e){return{jobs:[],nextToken:null};}
   }
 
-  // Fetch up to maxPages, stopping early if a page returns < 10 results
+  // Fetch up to maxPages using next_page_token for true pagination
   async function serpFetchPaged(q, maxPages){
-    let all=[], page=0;
+    let all=[], page=0, token=null;
     while(page<maxPages){
-      const results=await serpFetch(q, page*10);
-      all=[...all,...results];
-      if(results.length<10)break; // no more results
+      const {jobs,nextToken}=await serpFetch(q,token);
+      all=[...all,...jobs];
+      setP(
+        20+Math.round((page+1)/maxPages*30),
+        "Page "+(page+1)+" of "+maxPages+": "+all.length+" postings so far..."
+      );
+      if(!nextToken||jobs.length<10)break; // no more pages
+      token=nextToken;
       page++;
     }
     return englishOnly(dedup(all));
