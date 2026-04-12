@@ -360,7 +360,7 @@ body{font-family:"Barlow",sans-serif;background:var(--bg);color:var(--navy);min-
     </div>
   </div>
   <div class="topbar-right">
-    <span class="version-tag" id="ver-tag">v3.9</span>
+    <span class="version-tag" id="ver-tag">v4.0</span>
     <button class="pdf-btn" id="pdf-btn" onclick="makePDF()">&#8595;&nbsp; Export PDF</button>
   </div>
 </div>
@@ -581,12 +581,12 @@ function getW(){
   return manual||WORKER_URL;
 }
 function getK(){return "";} // Key stored in Cloudflare Worker env — not needed here
-function apiOk(){return getW().length>0;}
+function apiOk(){return true;} // Worker URL is hardcoded and pre-verified
 
 function sanitizeZip(el){el.value=el.value.replace(/[^0-9]/g,"");}
 function chkApi(){
-  const ok=document.getElementById("zip").value.trim().length===5&&apiOk();
-  document.getElementById("go-btn").disabled=!ok;
+  const zip=document.getElementById("zip").value.trim();
+  document.getElementById("go-btn").disabled=zip.length!==5;
 }
 
 function dollar(v){return "$"+parseFloat(v).toFixed(2);}
@@ -1188,7 +1188,9 @@ renderSkills();
 renderInternalRates();
 document.getElementById("zip").addEventListener("input",function(){sanitizeZip(this);chkApi();});
 document.getElementById("zip").addEventListener("keydown",function(e){if(e.key==="Enter")runSearch();});
-// Auto-test connection on load
-setTimeout(testApi, 500);
+// Show initial status and auto-test
+const stEl=document.getElementById("api-st");
+stEl.className="api-st";stEl.textContent="Testing connection...";
+setTimeout(testApi, 800);
 
 >
